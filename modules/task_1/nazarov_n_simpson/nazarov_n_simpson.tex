@@ -1,0 +1,1007 @@
+\documentclass{report}
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{luainputenc}
+\usepackage[english, russian]{babel}
+\usepackage[pdftex]{hyperref}
+\usepackage[14pt]{extsizes}
+\usepackage{color}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{indentfirst}
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+%New colors defined below
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+%Code listing style named "mystyle"
+\lstdefinestyle{mystyle}{
+  backgroundcolor=\color{backcolour},   commentstyle=\color{codegreen},
+  keywordstyle=\color{magenta},
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{codepurple},
+  basicstyle=\ttfamily\footnotesize,
+  breakatwhitespace=false,         
+  breaklines=true,                 
+  captionpos=b,                    
+  keepspaces=true,                 
+  numbers=left,                    
+  numbersep=5pt,                  
+  showspaces=false,                
+  showstringspaces=false,
+  showtabs=false,                  
+  tabsize=2
+}
+
+%"mystyle" code listing set
+\lstset{style=mystyle}
+
+\geometry{a4paper,top=2cm,bottom=3cm,left=2cm,right=1.5cm}
+\setlength{\parskip}{0.5cm}
+\setlist{nolistsep, itemsep=0.3cm,parsep=0pt}
+
+\lstset{language=C++,
+		basicstyle=\footnotesize,
+		keywordstyle=\color{blue}\ttfamily,
+		stringstyle=\color{red}\ttfamily,
+		commentstyle=\color{green}\ttfamily,
+		morecomment=[l][\color{magenta}]{\#}, 
+		tabsize=4,
+		breaklines=true,
+  		breakatwhitespace=true,
+  		title=\lstname,       
+}
+
+\makeatletter
+\renewcommand\@biblabel[1]{#1.\hfil}
+\makeatother
+
+\begin{document}
+
+\begin{titlepage}
+
+\begin{center}
+МИНИСТЕРСТВО НАУКИ И ВЫСШЕГО ОБРАЗОВАНИЯ РОССИЙСКОЙ ФЕДЕРАЦИИ 
+\end{center}
+
+\begin{center}
+Федеральное государственное автономное образовательное учреждение высшего образования \\
+\textbf{«Национальный исследовательский 
+Нижегородский государственный университет им. Н.И. Лобачевского» \\
+(ННГУ)}
+\end{center}
+\begin{center}
+\textbf{Институт информационных технологий, математики и механики}
+\end{center}
+\begin{center}
+Направление подготовки: «Фундаментальная информатика и информационные технологии»\\
+Профиль подготовки: «Инженерия программного обеспечения»
+\end{center}
+
+\begin{center}
+\textbf{Отчет по лабораторной работе} \\
+\end{center}
+\begin{center}
+\textbf{«Вычисление многомерных интегралов с использованием многошаговой схемы (метод Симпсона)»} \\
+\end{center}
+
+\vspace{2em}
+
+\newbox{\lbox}
+\savebox{\lbox}{\hbox{text}}
+\newlength{\maxl}
+\setlength{\maxl}{\wd\lbox}
+\hfill\parbox{7cm}{
+\hspace*{5cm}\hspace*{-5cm}\textbf{Выполнил:} \\ студент группы 381906-2 \\ Назаров Н.С.\\
+\\
+\hspace*{5cm}\hspace*{-5cm}\textbf{Проверил:}\\ Доцент кафедры МОСТ, \\ кандидат тех. наук \\ Сысоев А. В.\\
+}
+\vspace{\fill}
+
+\begin{center} Нижний Новгород \\ 2022 \end{center}
+
+\end{titlepage}
+
+\setcounter{page}{2}
+
+% Содержание
+\tableofcontents
+\newpage
+
+% Введение
+\section*{Введение}
+\addcontentsline{toc}{section}{Введение}
+При решении ряда актуальных физических и технических задач встречаются определенные интегралы от функций, первообразные которых не выражаются через элементарные функции. Кроме того, в приложениях приходится иметь дело с определенными интегралами, сами подынтегральные функции которых не являются элементарными. Это приводит к необходимости разработки приближенных методов вычисления определенных интегралов.
+\parМне была поставлена задача исследовать метод вычисления определенных интегралов: метод Симпсона (парабол)
+\newpage
+
+% Постановка задачи
+\section*{Постановка задачи}
+\addcontentsline{toc}{section}{Постановка задачи}
+В рамках лабораторной работы необходимо разработать программу, которая содержит:  
+\begin{itemize}
+    \item Последовательный алгоритм метода Симпсона
+   \item Параллельный алгоритм метода Симпсона, используя технологию параллельного программирования OpenMP
+    \item Параллельный алгоритм метода Симпсона, используя технологию параллельного программирования TBB
+    \item Параллельный алгоритм метода Симпсона, используя технологию параллельного программирования std::thread
+    \item Время работы и практическое ускорение реализованных алгоритмов
+\end{itemize}
+\newpage
+
+% Описание алгоритма
+\section*{Описание алгоритма}
+\addcontentsline{toc}{section}{Описание алгоритма}
+Суть метода Симпсона заключается в приближении подынтегральной функции $f(x)$ на отрезке $[a, b]$ интерполяционным многочленом второй степени $p_{2}(x)$, то есть приближение графика функции на отрезке параболой.
+\par Формулой Симпсона называется интеграл от интерполяционного многочлена второй степени на отрезке $[a, b]$:
+$$
+    \int\limits_a^b {f(x) dx} \approx \int\limits_a^b {p_2(x) dx} = \frac{b - a}{6} \left( f(a) + 4f \left( \frac{a - b}{2} \right) + f(b) \right)
+$$
+\par Для более точного вычисления интеграла функции, отрезок $[a, b]$ разбивают на $N = 2n$ равных элементарных отрезков. Значение исходного интеграла является суммой результатов интегрирования на элементарных отрезках:
+$$
+    \int\limits_a^b {f(x) dx} \approx \frac{h}{3} \left( f(x_0) + 2 \sum_{j = 1}^{\frac{N}{2} - 1} f(x_{2j}) + 4 \sum_{j = 1}^{\frac{N}{2}} f(x_{2j - 1})+ f(x_N) \right) ,
+$$
+где $h = \frac{b - a}{N}$ - шаг интегрирования, а $x_j = a + jh$ - чередующиеся границы и середины элементарных отрезков, на которых применяется формула Симпсона.
+\newpage
+
+% Описание схемы распараллеливания
+\section*{Описание схемы распараллеливания}
+\addcontentsline{toc}{section}{Описание схемы распараллеливания}
+В каждом пространстве интегрирования имеется область, заданная отрезками $[a_i; b_i]$. Также изначально задается шаг интегрирования - число разбиений данных отрезков, которое для каждого пространства может иметь собственное значение.
+
+\subsection*{OpenMP}
+\addcontentsline{toc}{subsection}{OpenMP}
+\par Для ускорения вычисления значения функции с использованием технологии OpenMP воспользуемся директивой на основе \verb|reduction| для распараллеливания вычислений \verb|#pragma omp| \verb|parallel|, которая внутри себя содержит директиву \verb|#pragma omp| \verb|for|, отвечающая за распределение итераций циклов между потоками по расписанию \verb|schedule(dynamic)|.
+\subsection*{TBB}
+\addcontentsline{toc}{subsection}{TBB}
+\par Библиотека TBB дает возможность реализовать параллельную версию вычислений с помощью шаблонной функции \verb|tbb::parallel_reduce|.
+Первый параметр функции \verb|tbb::blocked_range| является одномерным итерационным пространством – класс, определяющий количество параллельных итераций цикла. Последний параметр \verb|tbb::auto_partitioner| задает автоматическое количество вычислений, зависящее от величины входных данных.
+\subsection*{std::threads}
+\addcontentsline{toc}{subsection}{std::thread}
+Для ускорения операции вычисления значения функции с использованием технологии \verb|std::thread| распределим примерно одинаковое число итераций цикла, выполняющего пошаговое вычисление, между доступными потоками. При этом результаты вычислений 
+каждого потока необходимо сложить при помощи \verb|join|.
+\newpage
+
+% Описание программной реализации
+\section*{Описание программной реализации}
+\addcontentsline{toc}{section}{Описание программной реализации}
+Алгоритм последовательного вычисления многомерного интеграла с использованием многошагового метода Симпсона вызывается с помощью функции:
+\begin{lstlisting}
+double simpson(double (*func)(const std::vector<double>&),
+               const std::vector<std::pair<double, double>>& borders,
+               const std::vector<int>& steps)
+\end{lstlisting}
+\par Входными параметрами являются: функция, которую необходимо проинтегрировать, вектор левых и правых границ отрезков для каждого пространства интегрируемой функции, а также число разбиений отрезков. Функция возвращает результат - значение интеграла.
+\par Реализации распараллеливания метода Симпсона с технологиями параллельного програмирования OpenMP, TBB и std::thred представлены в функции:
+\begin{lstlisting}
+double simpson(double (*func)(const std::vector<double>&),
+               const std::vector<std::pair<double, double>>& borders,
+               const std::vector<int>& steps)
+\end{lstlisting}
+\par Они являются одноименными с предыдующей имеют те же входные и выходные данные, но реализованы в других проектах с некоторыми дополнениями для параллелизма.
+\newpage
+
+% Результаты экспериментов
+\section*{Результаты экспериментов}
+\addcontentsline{toc}{section}{Результаты экспериментов}
+Конфигурация системы:
+
+\begin{itemize}
+\item Процессор: AMD Ryzen 5 3600;
+\item Оперативная память: Crucial Ballistix 16 ГБ (8 ГБ x 2) DDR4 3200 МГц;
+\item ОС: Windows 10;
+\end{itemize}
+
+\par Для проведения экспериментов производилось последовательное и параллельное вычисление многомерного интеграла функции со значением шага 3 $x_0 * x_1 * x_2 * x_3 * x_4 * x_5 = y$ с помощью метода Симпсона.
+
+\begin{table}[!h]
+\caption{Результаты экспериментов для OpenMP}
+\centering
+\begin{tabular}{lllll}
+Threads & Sequential & OpenMP & Speedup  \\
+2        & 9.921283        & 4.927210    & 2.013570       \\
+6        & 9.915031        & 1.929844    & 5.137739       \\
+12       & 9.911507        & 1.262999    & 7.847597       
+\end{tabular}
+\end{table}
+
+\begin{table}[!h]
+\caption{Результаты экспериментов для TBB}
+\centering
+\begin{tabular}{lllll}
+Threads & Sequential & TBB & Speedup  \\
+2        & 9.968524        & 4.949077    & 2.014219       \\
+6        & 9.926568        & 1.954734    & 5.078218       \\
+12       & 9.984351        & 1.260665    & 7.919907       
+\end{tabular}
+\end{table}
+
+\begin{table}[!h]
+\caption{Результаты экспериментов для std::thread}
+\centering
+\begin{tabular}{lllll}
+Threads & Sequential & std::thread & Speedup  \\
+2        & 9.684        & 5.095    & 1.900687       \\
+6        & 9.709        & 2.438    & 3.982363       \\
+12       & 9.778        & 1.585    & 6.169085       
+\end{tabular}
+\end{table}
+\parДля подтверждения корректности работы программы разбработан набор тестов, который проверяет значения вычислений: сравнивается значение интеграла, полученное в результате параллельной программы, со значением, полученным с помощью последовательной, а также вычисление времени двух полученных результатов и сравнение данных.
+\parУспешное прохождение всех тестов подтверждает корректность работы реализованной программы.
+\newpage
+
+% Выводы из результатов
+\section*{Выводы из результатов}
+\addcontentsline{toc}{section}{Выводы из результатов}
+\par По данным, полученным в результате проведения эксперимента, можно сделать вывод о том, что параллельная программа работает действительно эффективнее, чем последовательная. Наибольшая эффективность достигается при
+максимально доступном количестве логических процессоров. Чтобы достичь наибольшей эффективности, размер отрезка, количество мерностей и число разбиений отрезков и количество логических процессов должны быть прямо пропорциональны друг другу.
+\newpage
+
+% Заключение
+\section*{Заключение}
+\addcontentsline{toc}{section}{Заключение}
+В лабораторной работе были реализованы последовательная и параллельная программы алгоритма вычисления многомерных интегралов с помощью многошаговой схемы метода Симпсона.
+\par Результаты проведенных экспериментов по оценке эффективности показывают, что параллельная версия работает быстрее, чем последовательная. Время работы программы в совокупности зависит от сложности вычисляемой функции, количества разбиений отрезков и мерности интегралов. Однако анализ проводился только с изменением числа потоков.
+\par Также написаны тесты, необходимые для подтверждения корректности работы программы.
+\newpage
+
+% Литература
+\begin{thebibliography}{1}
+\addcontentsline{toc}{section}{Литература}
+\bibitem{wikipedia} Википедия: Формула Симпсона [Электронный ресурс] // URL: https://ru.wikipedia.org/wiki/\verb|Формула_Симпсона|
+\bibitem{studbooks} Studbooks: Исследование методов вычисления определенных интегралов [Электронный ресурс] // URL: \url {https://studbooks.net/2269845/informatika/teoreticheskaya_chast}
+\end{thebibliography}
+\newpage
+
+% Приложение
+\section*{Приложение}
+\addcontentsline{toc}{section}{Приложение}
+В этом разделе находится весь код, реализованный в рамках лабораторных работ.
+\par 1. Sequential реализация. Файл: simpson.h
+\begin{lstlisting}[language=C++]
+// Copyright 2022 Nazarov Nikita
+#ifndef MODULES_TASK_1_NAZAROV_N_SIMPSON_SIMPSON_H_
+#define MODULES_TASK_1_NAZAROV_N_SIMPSON_SIMPSON_H_
+
+#include <algorithm>
+#include <cmath>
+#include <functional>
+#include <utility>
+#include <vector>
+
+double simpson(double (*func)(const std::vector<double>&),
+               const std::vector<std::pair<double, double>>& borders,
+               const std::vector<int>& steps);
+
+#endif  // MODULES_TASK_1_NAZAROV_N_SIMPSON_SIMPSON_H_
+\end{lstlisting}
+
+\par 1. Sequential реализация. Файл: simpson.cpp
+
+\begin{lstlisting}[language=C++]
+// Copyright 2022 Nazarov Nikita
+#include "../../../modules/task_1/nazarov_n_simpson/simpson.h"
+
+double simpson(double (*func)(const std::vector<double>&),
+               const std::vector<std::pair<double, double>>& borders,
+               const std::vector<int>& steps) {
+  int iteration = 1;
+  int dimensions = steps.size();
+  double integral_simpson = 0;
+  std::vector<double> h(dimensions);
+  int a = std::pow(6, dimensions);
+  std::vector<std::vector<double>> parameters(dimensions,
+                                              std::vector<double>(6));
+  std::vector<double> argument(dimensions);
+
+  for (int i = 0; i < dimensions; i++) {
+    h[i] = (borders[i].second - borders[i].first) / steps[i];
+    iteration *= steps[i];
+  }
+
+  for (int i = 0, x = i; i < iteration; i++, x = i) {
+    for (int dim = 0; dim < dimensions; dim++) {
+      parameters[dim][0] = borders[dim].first + (x % steps[dim]) * h[dim];
+      parameters[dim][1] =
+          borders[dim].first + (x % steps[dim]) * h[dim] + h[dim] / 2;
+      parameters[dim][2] = parameters[dim][1];
+      parameters[dim][3] = parameters[dim][1];
+      parameters[dim][4] = parameters[dim][1];
+      parameters[dim][5] = parameters[dim][0] + h[dim];
+      x /= steps[dim];
+    }
+    for (int i = 0, x = i; i < a; i++, x = i) {
+      for (int dim = 0; dim < dimensions; dim++) {
+        argument[dim] = parameters[dim][x % 6];
+        x /= 6;
+      }
+      integral_simpson += func(argument);
+    }
+  }
+
+  for (int i = 0; i < dimensions; i++) {
+    integral_simpson *= h[i] / 6.0;
+  }
+
+  return integral_simpson;
+}
+\end{lstlisting}
+
+\par 1. Sequential реализация. Файл: main.cpp
+
+\begin{lstlisting}[language=C++]
+// Copyright 2022 Nazarov Nikita
+#include <gtest/gtest.h>
+#include "../../../modules/task_1/nazarov_n_simpson/simpson.h"
+
+double function1(const std::vector<double>& x) { return (x[0] * x[1]); }
+
+double function2(const std::vector<double>& x) { return (x[0] * x[1] * x[2]); }
+
+double function3(const std::vector<double>& x) {
+  return (x[0] * x[1] * x[2] * x[3]);
+}
+
+double function4(const std::vector<double>& x) {
+  return (x[0] * x[1] * x[2] * x[3] * x[4]);
+}
+
+double function5(const std::vector<double>& x) {
+  return (x[0] * x[1] * x[2] * x[3] * x[4] * x[5]);
+}
+
+TEST(Simpson, Dimension_2) {
+  int dimension = 2;
+  std::vector<std::pair<double, double>> borders{{1, 18}, {-7, 2}};
+  std::vector<int> steps(dimension, 100);
+
+  ASSERT_NEAR(simpson(function1, borders, steps), -3633.75, 0.0001);
+}
+
+TEST(Simpson, Dimension_3) {
+  int dimension = 3;
+  std::vector<std::pair<double, double>> borders{{1, 18}, {-7, 2}, {1, 3}};
+  std::vector<int> steps(dimension, 12);
+
+  ASSERT_NEAR(simpson(function2, borders, steps), -14535, 0.0001);
+}
+
+TEST(Simpson, Dimension_4) {
+  int dimension = 4;
+  std::vector<std::pair<double, double>> borders{
+      {1, 18}, {-7, 2}, {1, 3}, {7, 11}};
+  std::vector<int> steps(dimension, 4);
+
+  ASSERT_NEAR(simpson(function3, borders, steps), -523260, 0.0001);
+}
+
+TEST(Simpson, Dimension_5) {
+  int dimension = 5;
+  std::vector<std::pair<double, double>> borders{
+      {1, 18}, {-7, 2}, {1, 3}, {7, 11}, {0.1, 0.9}};
+  std::vector<int> steps(dimension, 2);
+
+  ASSERT_NEAR(simpson(function4, borders, steps), -209304, 0.0001);
+}
+
+TEST(Simpson, Dimension_6) {
+  int dimension = 6;
+  std::vector<std::pair<double, double>> borders{{1, 18}, {-7, 2},    {1, 3},
+                                                 {7, 11}, {0.1, 0.9}, {2, 3}};
+  std::vector<int> steps(dimension, 1);
+
+  ASSERT_NEAR(simpson(function5, borders, steps), -523260, 0.0001);
+}
+\end{lstlisting}
+
+\par 2. OpenMP реализация. Файл: simpson.h
+
+\begin{lstlisting}[language=C++]
+// Copyright 2022 Nazarov Nikita
+#ifndef MODULES_TASK_2_NAZAROV_N_SIMPSON_SIMPSON_H_
+#define MODULES_TASK_2_NAZAROV_N_SIMPSON_SIMPSON_H_
+
+#include <omp.h>
+#include <algorithm>
+#include <cmath>
+#include <functional>
+#include <utility>
+#include <vector>
+
+double simpson(double (*func)(const std::vector<double>&),
+               const std::vector<std::pair<double, double>>& borders,
+               const std::vector<int>& steps);
+
+#endif  // MODULES_TASK_2_NAZAROV_N_SIMPSON_SIMPSON_H_
+\end{lstlisting}
+
+\par 2. OpenMP реализация. Файл: simpson.cpp
+
+\begin{lstlisting}[language=C++]
+// Copyright 2022 Nazarov Nikita
+#include "../../../modules/task_2/nazarov_n_simpson/simpson.h"
+
+int x;
+#pragma omp threadprivate(x)
+
+double simpson(double (*func)(const std::vector<double>&),
+               const std::vector<std::pair<double, double>>& borders,
+               const std::vector<int>& steps) {
+  int iteration = 1;
+  int dimensions = steps.size();
+  double integral_simpson = 0;
+  std::vector<double> h(dimensions);
+  int i;
+  int a = pow(6, dimensions);
+  int j;
+  for (int i = 0; i < dimensions; i++) {
+    h[i] = (borders[i].second - borders[i].first) / steps[i];
+    iteration *= steps[i];
+  }
+
+  std::vector<std::vector<double>> parameters(dimensions,
+                                              std::vector<double>(6));
+  std::vector<double> argument(dimensions);
+  // omp_set_num_threads(12);
+
+#pragma omp parallel shared(dimensions, iteration, h, borders, steps, a) private(i, j) \
+  firstprivate(parameters, argument) reduction(+ : integral_simpson)  // num_threads(12)
+#pragma omp for schedule(dynamic)
+  for (i = 0; i < iteration; i++) {
+    x = i;
+    for (int dim = 0; dim < dimensions; dim++) {
+      parameters[dim][0] = borders[dim].first + (x % steps[dim]) * h[dim];
+      parameters[dim][1] =
+          borders[dim].first + (x % steps[dim]) * h[dim] + h[dim] / 2;
+      parameters[dim][2] = parameters[dim][1];
+      parameters[dim][3] = parameters[dim][1];
+      parameters[dim][4] = parameters[dim][1];
+      parameters[dim][5] = parameters[dim][0] + h[dim];
+      x /= steps[dim];
+    }
+
+    for (j = 0; j < a; j++) {
+      x = j;
+      for (int dim = 0; dim < dimensions; dim++) {
+        argument[dim] = parameters[dim][x % 6];
+        x /= 6;
+      }
+      integral_simpson += func(argument);
+    }
+  }
+
+  for (int i = 0; i < dimensions; i++) {
+    integral_simpson *= h[i] / 6.0;
+  }
+
+  return integral_simpson;
+}
+\end{lstlisting}
+
+\par 2. OpenMP реализация. Файл: main.cpp
+
+\begin{lstlisting}[language=C++]
+// Copyright 2022 Nazarov Nikita
+#include <gtest/gtest.h>
+
+#include "../../../modules/task_2/nazarov_n_simpson/simpson.h"
+
+double function1(const std::vector<double>& x) { return (x[0] * x[1]); }
+
+double function2(const std::vector<double>& x) { return (x[0] * x[1] * x[2]); }
+
+double function3(const std::vector<double>& x) {
+  return (x[0] * x[1] * x[2] * x[3]);
+}
+
+double function4(const std::vector<double>& x) {
+  return (x[0] * x[1] * x[2] * x[3] * x[4]);
+}
+
+double function5(const std::vector<double>& x) {
+  return (x[0] * x[1] * x[2] * x[3] * x[4] * x[5]);
+}
+
+TEST(Simpson, Dimension_2) {
+  int dimension = 2;
+  std::vector<std::pair<double, double>> borders{{1, 18}, {-7, 2}};
+  std::vector<int> steps(dimension, 100);
+
+  ASSERT_NEAR(simpson(function1, borders, steps), -3633.75, 0.0001);
+}
+
+TEST(Simpson, Dimension_3) {
+  int dimension = 3;
+  std::vector<std::pair<double, double>> borders{{1, 18}, {-7, 2}, {1, 3}};
+  std::vector<int> steps(dimension, 12);
+
+  ASSERT_NEAR(simpson(function2, borders, steps), -14535, 0.0001);
+}
+
+TEST(Simpson, Dimension_4) {
+  int dimension = 4;
+  std::vector<std::pair<double, double>> borders{
+      {1, 18}, {-7, 2}, {1, 3}, {7, 11}};
+  std::vector<int> steps(dimension, 4);
+
+  ASSERT_NEAR(simpson(function3, borders, steps), -523260, 0.0001);
+}
+
+TEST(Simpson, Dimension_5) {
+  int dimension = 5;
+  std::vector<std::pair<double, double>> borders{
+      {1, 18}, {-7, 2}, {1, 3}, {7, 11}, {0.1, 0.9}};
+  std::vector<int> steps(dimension, 2);
+
+  ASSERT_NEAR(simpson(function4, borders, steps), -209304, 0.0001);
+}
+
+TEST(Simpson, Dimension_6) {
+  int dimension = 6;
+  std::vector<std::pair<double, double>> borders{{1, 18}, {-7, 2},    {1, 3},
+                                                 {7, 11}, {0.1, 0.9}, {2, 3}};
+  std::vector<int> steps(dimension, 1);
+  double t1, t2, t3, t4;
+  omp_set_num_threads(1);
+  t1 = omp_get_wtime();
+  simpson(function5, borders, steps);
+  t2 = omp_get_wtime();
+  omp_set_num_threads(12);
+  t3 = omp_get_wtime();
+  ASSERT_NEAR(simpson(function5, borders, steps), -523260, 0.0001);
+  t4 = omp_get_wtime();
+  printf("seq : %lf\n", t2 - t1);
+  printf("parallel : %lf\n", t4 - t3);
+  printf("%lf\n", (t2 - t1) / (t4 - t3));
+}
+\end{lstlisting}
+
+\par 3. TBB реализация. Файл: simpson.h
+
+\begin{lstlisting}[language=C++]
+// Copyright 2022 Nazarov Nikita
+#ifndef MODULES_TASK_3_NAZAROV_N_SIMPSON_SIMPSON_H_
+#define MODULES_TASK_3_NAZAROV_N_SIMPSON_SIMPSON_H_
+
+#include <omp.h>
+#include <stdio.h>
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_reduce.h>
+#include <tbb/task_scheduler_init.h>
+#include <tbb/tbb.h>
+
+#include <algorithm>
+#include <cmath>
+#include <functional>
+#include <utility>
+#include <vector>
+
+double simpson(double (*func)(const std::vector<double>&),
+               const std::vector<std::pair<double, double>>& borders,
+               const std::vector<int>& steps, int process);
+
+#endif  // MODULES_TASK_3_NAZAROV_N_SIMPSON_SIMPSON_H_
+\end{lstlisting}
+
+\par 3. TBB реализация. Файл: simpson.cpp
+
+\begin{lstlisting}[language=C++]
+// Copyright 2022 Nazarov Nikita
+#include "../../../modules/task_3/nazarov_n_simpson/simpson.h"
+
+class SimpsonFunc {
+  double (*func)(const std::vector<double>&);
+  const std::vector<std::pair<double, double>>& borders;
+  const std::vector<int>& steps;
+  int const dimensions;
+  const std::vector<double>& h;
+  int const a;
+  double k;
+  double integral_simpson;
+  std::vector<std::vector<double>> parameters;
+  std::vector<double> argument;
+
+ public:
+  SimpsonFunc(double (*_func)(const std::vector<double>&),
+              const std::vector<std::pair<double, double>>& _borders,
+              const std::vector<int>& _steps, const int _dimensions,
+              const std::vector<double>& _h, const int _a, double _k)
+      : func(_func),
+        borders(_borders),
+        steps(_steps),
+        dimensions(_dimensions),
+        h(_h),
+        a(_a),
+        k(_k),
+        integral_simpson(0.0),
+        parameters(std::vector<std::vector<double>>(dimensions,
+                                                    std::vector<double>(6))),
+        argument(std::vector<double>(dimensions)) {}
+
+  void operator()(const tbb::blocked_range<int>& range) {
+    for (int i = range.begin(), x = i; i != range.end(); i++, x = i) {
+      for (int dim = 0; dim < dimensions; dim++) {
+        parameters[dim][0] = borders[dim].first + (x % steps[dim]) * h[dim];
+        parameters[dim][1] =
+            borders[dim].first + (x % steps[dim]) * h[dim] + h[dim] / 2;
+        parameters[dim][2] = parameters[dim][1];
+        parameters[dim][3] = parameters[dim][1];
+        parameters[dim][4] = parameters[dim][1];
+        parameters[dim][5] = parameters[dim][0] + h[dim];
+        x /= steps[dim];
+      }
+      for (int i = 0, x = i; i < a; i++, x = i) {
+        for (int dim = 0; dim < dimensions; dim++) {
+          argument[dim] = parameters[dim][x % 6];
+          x /= 6;
+        }
+        integral_simpson += k * func(argument);
+      }
+    }
+    /*for (int i = 0; i < dimensions; i++) {
+      integral_simpson *= h[i] / 6.0;
+    }*/
+  }
+
+  SimpsonFunc(const SimpsonFunc& simpson, tbb::split)
+      : func(simpson.func),
+        borders(simpson.borders),
+        steps(simpson.steps),
+        dimensions(simpson.dimensions),
+        h(simpson.h),
+        a(simpson.a),
+        k(simpson.k),
+        integral_simpson(0.0),
+        parameters(std::vector<std::vector<double>>(dimensions,
+                                                    std::vector<double>(6))),
+        argument(std::vector<double>(dimensions)) {}
+
+  void join(const SimpsonFunc& simpson) {
+    integral_simpson += simpson.integral_simpson;
+    // printf("%lf\n", integral_simpson);
+  }
+  double Result() { return integral_simpson; }
+};
+
+double simpson(double (*func)(const std::vector<double>&),
+               const std::vector<std::pair<double, double>>& borders,
+               const std::vector<int>& steps, int process) {
+  int iteration = 1;
+  int dimensions = steps.size();
+  int a = std::pow(6, dimensions);
+  double k = 1;
+  std::vector<double> h(dimensions);
+  std::vector<std::vector<double>> parameters(dimensions,
+                                              std::vector<double>(6));
+  std::vector<double> argument(dimensions);
+  for (int i = 0; i < dimensions; i++) {
+    h[i] = (borders[i].second - borders[i].first) / steps[i];
+    iteration *= steps[i];
+    k *= h[i] / 6.0;
+  }
+  tbb::task_scheduler_init init(process);
+
+  SimpsonFunc simpson(func, borders, steps, dimensions, h, a, k);
+
+  tbb::parallel_reduce(tbb::blocked_range<int>(0, iteration), simpson,
+                       tbb::auto_partitioner());
+
+  return simpson.Result();
+}
+\end{lstlisting}
+
+\par 3. TBB реализация. Файл: main.cpp
+
+\begin{lstlisting}[language=C++]
+// Copyright 2022 Nazarov Nikita
+#include <gtest/gtest.h>
+
+#include "../../../modules/task_3/nazarov_n_simpson/simpson.h"
+
+double function1(const std::vector<double>& x) { return (x[0] * x[1]); }
+
+double function2(const std::vector<double>& x) { return (x[0] * x[1] * x[2]); }
+
+double function3(const std::vector<double>& x) {
+  return (x[0] * x[1] * x[2] * x[3]);
+}
+
+double function4(const std::vector<double>& x) {
+  return (x[0] * x[1] * x[2] * x[3] * x[4]);
+}
+
+double function5(const std::vector<double>& x) {
+  return (x[0] * x[1] * x[2] * x[3] * x[4] * x[5]);
+}
+
+TEST(Simpson, Dimension_2) {
+  int dimension = 2;
+  std::vector<std::pair<double, double>> borders{{1, 18}, {-7, 2}};
+  std::vector<int> steps(dimension, 100);
+
+  ASSERT_NEAR(simpson(function1, borders, steps, 1), -3633.75, 0.0001);
+}
+
+TEST(Simpson, Dimension_3) {
+  int dimension = 3;
+  std::vector<std::pair<double, double>> borders{{1, 18}, {-7, 2}, {1, 3}};
+  std::vector<int> steps(dimension, 12);
+
+  ASSERT_NEAR(simpson(function2, borders, steps, 1), -14535, 0.0001);
+}
+
+TEST(Simpson, Dimension_4) {
+  int dimension = 4;
+  std::vector<std::pair<double, double>> borders{
+      {1, 18}, {-7, 2}, {1, 3}, {7, 11}};
+  std::vector<int> steps(dimension, 4);
+
+  ASSERT_NEAR(simpson(function3, borders, steps, 1), -523260, 0.0001);
+}
+
+TEST(Simpson, Dimension_5) {
+  int dimension = 5;
+  std::vector<std::pair<double, double>> borders{
+      {1, 18}, {-7, 2}, {1, 3}, {7, 11}, {0.1, 0.9}};
+  std::vector<int> steps(dimension, 2);
+
+  ASSERT_NEAR(simpson(function4, borders, steps, 1), -209304, 0.0001);
+}
+
+TEST(Simpson, Dimension_6) {
+  int dimension = 6;
+  std::vector<std::pair<double, double>> borders{{1, 18}, {-7, 2},    {1, 3},
+                                                 {7, 11}, {0.1, 0.9}, {2, 3}};
+  std::vector<int> steps(dimension, 1);
+
+  double t1 = omp_get_wtime();
+  ASSERT_NEAR(simpson(function5, borders, steps, 1), -523260, 0.0001);
+  double t2 = omp_get_wtime();
+
+  double t3 = omp_get_wtime();
+  ASSERT_NEAR(simpson(function5, borders, steps, 12), -523260, 0.0001);
+  double t4 = omp_get_wtime();
+
+  printf("seq : %lf\n", t2 - t1);
+  printf("parallel : %lf\n", t4 - t3);
+  printf("%lf\n", (t2 - t1) / (t4 - t3));
+}
+\end{lstlisting}
+
+\par 4. std::thread реализация . Файл: simpson.h
+
+\begin{lstlisting}[language=C++]
+// Copyright 2022 Nazarov Nikita
+#ifndef MODULES_TASK_4_NAZAROV_N_SIMPSON_SIMPSON_H_
+#define MODULES_TASK_4_NAZAROV_N_SIMPSON_SIMPSON_H_
+
+#include <algorithm>
+#include <cmath>
+#include <ctime>
+#include <functional>
+#include <utility>
+#include <vector>
+#include "../../../3rdparty/unapproved/unapproved.h"
+
+double simpson_seq(double (*func)(const std::vector<double>&),
+                   const std::vector<std::pair<double, double>>& borders,
+                   const std::vector<int>& steps);
+
+double simpson(double (*func)(const std::vector<double>&),
+               const std::vector<std::pair<double, double>>& borders,
+               const std::vector<int>& steps);
+#endif  // MODULES_TASK_4_NAZAROV_N_SIMPSON_SIMPSON_H_
+\end{lstlisting}
+
+\par 4. std::thread реализация. Файл: simpson.cpp
+
+\begin{lstlisting}[language=C++]
+// Copyright 2022 Nazarov Nikita
+#include "../../../modules/task_4/nazarov_n_simpson/simpson.h"
+
+static const int THREADS_NUMBER = 12;
+double global_sum[THREADS_NUMBER];
+
+void thread_simpson(double (*func)(const std::vector<double>&),
+                    const std::vector<std::pair<double, double>>& borders,
+                    const std::vector<int>& steps, const int rank,
+                    const int iteration, const int dimensions,
+                    const std::vector<double>& h, const int a) {
+  std::vector<std::vector<double>> parameters(dimensions,
+                                              std::vector<double>(6));
+  std::vector<double> argument(dimensions);
+  int step = iteration / THREADS_NUMBER;
+  int left;
+  int right;
+  if (rank + 1 == THREADS_NUMBER) {
+    left = step * (THREADS_NUMBER - 1);
+    right = iteration;
+  } else {
+    left = rank * step;
+    right = step * (rank + 1);
+  }
+  for (int i = left, x = i; i < right; i++, x = i) {
+    for (int dim = 0; dim < dimensions; dim++) {
+      parameters[dim][0] = borders[dim].first + (x % steps[dim]) * h[dim];
+      parameters[dim][1] =
+          borders[dim].first + (x % steps[dim]) * h[dim] + h[dim] / 2;
+      parameters[dim][2] = parameters[dim][1];
+      parameters[dim][3] = parameters[dim][1];
+      parameters[dim][4] = parameters[dim][1];
+      parameters[dim][5] = parameters[dim][0] + h[dim];
+      x /= steps[dim];
+    }
+    for (int i = 0, x = i; i < a; i++, x = i) {
+      for (int dim = 0; dim < dimensions; dim++) {
+        argument[dim] = parameters[dim][x % 6];
+        x /= 6;
+      }
+      global_sum[rank] += func(argument);
+    }
+  }
+  for (int i = 0; i < dimensions; i++) {
+    global_sum[rank] *= h[i] / 6.0;
+  }
+}
+
+double simpson(double (*func)(const std::vector<double>&),
+               const std::vector<std::pair<double, double>>& borders,
+               const std::vector<int>& steps) {
+  int iteration = 1;
+  int dimensions = steps.size();
+  double integral_simpson = 0;
+  std::vector<double> h(dimensions);
+  int a = std::pow(6, dimensions);
+
+  for (int i = 0; i < dimensions; i++) {
+    h[i] = (borders[i].second - borders[i].first) / steps[i];
+    iteration *= steps[i];
+  }
+
+  std::thread threads[THREADS_NUMBER];
+
+  for (int rank = 0; rank < THREADS_NUMBER; rank++)
+    threads[rank] = std::thread(thread_simpson, func, borders, steps, rank,
+                                iteration, dimensions, h, a);
+
+  for (int i = 0; i < THREADS_NUMBER; i++) {
+    threads[i].join();
+    integral_simpson += global_sum[i];
+    global_sum[i] = 0;
+  }
+  return integral_simpson;
+}
+
+// ----------------------------------------------------------------------
+
+double simpson_seq(double (*func)(const std::vector<double>&),
+                   const std::vector<std::pair<double, double>>& borders,
+                   const std::vector<int>& steps) {
+  int iteration = 1;
+  int dimensions = steps.size();
+  double integral_simpson = 0;
+  std::vector<double> h(dimensions);
+  int a = std::pow(6, dimensions);
+  std::vector<std::vector<double>> parameters(dimensions,
+                                              std::vector<double>(6));
+  std::vector<double> argument(dimensions);
+
+  for (int i = 0; i < dimensions; i++) {
+    h[i] = (borders[i].second - borders[i].first) / steps[i];
+    iteration *= steps[i];
+  }
+
+  for (int i = 0, x = i; i < iteration; i++, x = i) {
+    for (int dim = 0; dim < dimensions; dim++) {
+      parameters[dim][0] = borders[dim].first + (x % steps[dim]) * h[dim];
+      parameters[dim][1] =
+          borders[dim].first + (x % steps[dim]) * h[dim] + h[dim] / 2;
+      parameters[dim][2] = parameters[dim][1];
+      parameters[dim][3] = parameters[dim][1];
+      parameters[dim][4] = parameters[dim][1];
+      parameters[dim][5] = parameters[dim][0] + h[dim];
+      x /= steps[dim];
+    }
+    for (int i = 0, x = i; i < a; i++, x = i) {
+      for (int dim = 0; dim < dimensions; dim++) {
+        argument[dim] = parameters[dim][x % 6];
+        x /= 6;
+      }
+      integral_simpson += func(argument);
+    }
+  }
+
+  for (int i = 0; i < dimensions; i++) {
+    integral_simpson *= h[i] / 6.0;
+  }
+
+  return integral_simpson;
+}
+\end{lstlisting}
+
+\par 4. std::thread реализация. Файл: main.cpp
+
+\begin{lstlisting}[language=C++]
+// Copyright 2022 Nazarov Nikita
+#include <gtest/gtest.h>
+
+#include "../../../modules/task_4/nazarov_n_simpson/simpson.h"
+
+double function1(const std::vector<double>& x) { return (x[0] * x[1]); }
+
+double function2(const std::vector<double>& x) { return (x[0] * x[1] * x[2]); }
+
+double function3(const std::vector<double>& x) {
+  return (x[0] * x[1] * x[2] * x[3]);
+}
+
+double function4(const std::vector<double>& x) {
+  return (x[0] * x[1] * x[2] * x[3] * x[4]);
+}
+
+double function5(const std::vector<double>& x) {
+  return (x[0] * x[1] * x[2] * x[3] * x[4] * x[5]);
+}
+
+TEST(Simpson, Dimension_2) {
+  int dimension = 2;
+  std::vector<std::pair<double, double>> borders{{1, 18}, {-7, 2}};
+  std::vector<int> steps(dimension, 100);
+
+  ASSERT_NEAR(simpson(function1, borders, steps), -3633.75, 0.0001);
+}
+
+TEST(Simpson, Dimension_3) {
+  int dimension = 3;
+  std::vector<std::pair<double, double>> borders{{1, 18}, {-7, 2}, {1, 3}};
+  std::vector<int> steps(dimension, 12);
+
+  ASSERT_NEAR(simpson(function2, borders, steps), -14535, 0.0001);
+}
+
+TEST(Simpson, Dimension_4) {
+  int dimension = 4;
+  std::vector<std::pair<double, double>> borders{
+      {1, 18}, {-7, 2}, {1, 3}, {7, 11}};
+  std::vector<int> steps(dimension, 4);
+
+  ASSERT_NEAR(simpson(function3, borders, steps), -523260, 0.0001);
+}
+
+TEST(Simpson, Dimension_5) {
+  int dimension = 5;
+  std::vector<std::pair<double, double>> borders{
+      {1, 18}, {-7, 2}, {1, 3}, {7, 11}, {0.1, 0.9}};
+  std::vector<int> steps(dimension, 2);
+
+  ASSERT_NEAR(simpson(function4, borders, steps), -209304, 0.0001);
+}
+
+TEST(Simpson, Dimension_6) {
+  int dimension = 6;
+  std::vector<std::pair<double, double>> borders{{1, 18}, {-7, 2},    {1, 3},
+                                                 {7, 11}, {0.1, 0.9}, {2, 3}};
+  std::vector<int> steps(dimension, 1);
+
+  auto t1 = clock();
+  ASSERT_NEAR(simpson_seq(function5, borders, steps), -523260, 0.0001);
+  auto t2 = clock();
+
+  auto t3 = clock();
+  ASSERT_NEAR(simpson(function5, borders, steps), -523260, 0.0001);
+  auto t4 = clock();
+
+  printf("seq : %f\n", static_cast<float>(t2 - t1) / CLOCKS_PER_SEC);
+  printf("parallel : %f\n", static_cast<float>(t4 - t3) / CLOCKS_PER_SEC);
+  printf("%f\n", (static_cast<float>(t2 - t1) / CLOCKS_PER_SEC) /
+                      (static_cast<float>(t4 - t3) / CLOCKS_PER_SEC));
+}
+\end{lstlisting}
+
+\end{document}
